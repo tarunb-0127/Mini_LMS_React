@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import {
   BookOpen,
@@ -9,6 +9,7 @@ import {
   Shield,
   Save,
   X,
+  Layers,
 } from "lucide-react";
 
 function MyCourses() {
@@ -58,7 +59,7 @@ function MyCourses() {
         if (!res.ok) throw new Error("Unauthorized");
         const data = await res.json();
         const mine = data.filter(
-          (c) => c.trainer?.id?.toString() === trainerId?.toString()
+          (c) => c.trainerId?.toString() === trainerId?.toString()
         );
         setCourses(mine);
       })
@@ -70,10 +71,10 @@ function MyCourses() {
   const handleEdit = (course) => {
     setEditingCourse(course);
     setFormData({
-      name: course.name,
-      type: course.type,
-      duration: course.duration,
-      visibility: course.visibility,
+      name: course.name || "",
+      type: course.type || "",
+      duration: course.duration || "",
+      visibility: course.visibility || "Public",
     });
   };
 
@@ -95,24 +96,28 @@ function MyCourses() {
     updateData.append("duration", formData.duration);
     updateData.append("visibility", formData.visibility);
 
-    const res = await fetch(
-      `http://localhost:5254/api/Course/edit/${editingCourse.id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: updateData,
-      }
-    );
+    try {
+      const res = await fetch(
+        `http://localhost:5254/api/Course/edit/${editingCourse.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: updateData,
+        }
+      );
 
-    const result = await res.json();
-    if (res.ok) {
-      setMessage("Course updated successfully.");
-      handleCancelEdit();
-      fetchCourses();
-    } else {
-      setMessage(result.message || "Update failed.");
+      const result = await res.json();
+      if (res.ok) {
+        setMessage("Course updated successfully.");
+        handleCancelEdit();
+        fetchCourses();
+      } else {
+        setMessage(result.message || "Update failed.");
+      }
+    } catch {
+      setMessage("Network error updating course.");
     }
   };
 
@@ -264,6 +269,13 @@ function MyCourses() {
                           Request Takedown
                         </button>
                       </div>
+                      <Link
+                        to={`/trainer/course/${course.id}`}
+                        className="btn btn-sm btn-outline-secondary mt-2 w-100"
+                      >
+                        <Layers size={16} className="me-1" />
+                        View Modules
+                      </Link>
                     </>
                   )}
                 </div>
