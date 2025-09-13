@@ -8,6 +8,9 @@ import SetupPassword from './Pages/SetupPassword';
 import LoginPage from './Pages/LoginPage';
 import LearnerHome from './Pages/LearnerHome';
 import TrainerHome from './Pages/TrainerHome';
+import ManageCourses from './Pages/ManageCourses';
+import AdminDashboard from './Pages/AdminDashboard';
+import MyCourses from './Pages/MyCourses';
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
         <Route path="/login" element={<LoginPage />}/>
         <Route path ="/learner/home" element={<LearnerHome></LearnerHome>}/>
         <Route path ="/trainer/home" element={<TrainerHome/>}/>
+        <Route path='/admin/courses' element={<ManageCourses/>}/>
+        <Route path='admin/dashboard' element={<AdminDashboard/>}/>
+        <Route path='trainer/my-courses' element={<MyCourses/>}/>
 
         
         

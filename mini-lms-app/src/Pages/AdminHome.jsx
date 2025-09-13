@@ -1,9 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar";
 
 const AdminHome = () => {
+  const [message, setMessage] = useState("");
+  const [user, setUser] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/admin-login");
+      return;
+    }
+
+    fetch("http://localhost:5254/api/admin/home", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (res) => {
+        if (res.status === 401 || res.status === 403) {
+          
+          localStorage.removeItem("token");
+          navigate("/admin-login");
+
+        } else {
+          const data = await res.json();
+          setMessage(data.message);
+          setUser(data.user);
+        }
+      })
+      .catch(() => {
+        setMessage("Failed to load admin dashboard.");
+      });
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -18,9 +51,8 @@ const AdminHome = () => {
         <h1 className="text-center text-3xl fw-bold text-dark">
           Admin Dashboard
         </h1>
-        <p className="text-center text-muted">
-          Manage your LMS resources easily 🚀
-        </p>
+        <p className="text-center text-muted">{message}</p>
+        <p className="text-center text-muted">Logged in as: {user}</p>
 
         <div className="row mt-5">
           {/* Manage Users */}
