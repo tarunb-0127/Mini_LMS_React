@@ -14,7 +14,6 @@ import {
 
 function MyCourses() {
   const [courses, setCourses] = useState([]);
-  const [trainerId, setTrainerId] = useState(null);
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [editingCourse, setEditingCourse] = useState(null);
@@ -38,20 +37,17 @@ function MyCourses() {
 
     try {
       const decoded = jwtDecode(token);
-      setTrainerId(decoded.UserId || decoded.userId || decoded.sub);
       setUsername(decoded.username || "Trainer");
+      fetchCourses(decoded.UserId || decoded.userId || decoded.sub);
     } catch {
       localStorage.clear();
       navigate("/login", {
         state: { alert: "Session invalid. Please login again." },
       });
-      return;
     }
-
-    fetchCourses();
   }, [navigate, token]);
 
-  const fetchCourses = () => {
+  const fetchCourses = (trainerId) => {
     fetch("http://localhost:5254/api/Course/all", {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -112,7 +108,7 @@ function MyCourses() {
       if (res.ok) {
         setMessage("Course updated successfully.");
         handleCancelEdit();
-        fetchCourses();
+        fetchCourses(editingCourse.trainerId);
       } else {
         setMessage(result.message || "Update failed.");
       }
