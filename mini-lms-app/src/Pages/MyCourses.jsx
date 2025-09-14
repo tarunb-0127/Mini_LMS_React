@@ -280,13 +280,14 @@ export default function MyCourses() {
                           Request Takedown
                         </button>
                       </div>
-                      <Link
-                        to={`/trainer/course/${course.id}`}
-                        className="btn btn-sm btn-outline-secondary mt-2 w-100"
-                      >
-                        <Layers size={16} className="me-1" />
-                        View Modules
-                      </Link>
+                    <Link
+  to={`/trainer/courses/${course.id}/modules`}
+  className="btn btn-sm btn-outline-secondary mt-2 w-100"
+>
+  <Layers size={16} className="me-1" />
+  View Modules
+</Link>
+
                     </>
                   )}
                 </div>

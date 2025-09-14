@@ -12,6 +12,8 @@ import ManageCourses from './Pages/ManageCourses';
 import AdminDashboard from './Pages/AdminDashboard';
 import MyCourses from './Pages/MyCourses';
 import CreateCourse from './Pages/CreateCourse';
+import ManageModules from './Pages/ManageModules';
+import LearnerCourseDetails from './Pages/LearnerCourseDetails';
 
 function App() {
   return (
@@ -30,6 +32,12 @@ function App() {
         <Route path='admin/dashboard' element={<AdminDashboard/>}/>
         <Route path='trainer/my-courses' element={<MyCourses/>}/>
         <Route path='trainer/create-course' element={<CreateCourse/>}/>
+        <Route path="/trainer/courses/:courseId/modules" element={<ManageModules />} />
+        <Route path="/trainer/modules" element={<ManageModules />} />
+        <Route path="/learner/home" element={<LearnerHome />} />
+        <Route path="/learner/course/:id" element={<LearnerCourseDetails />} />
+    
+
         
       </Routes>
     </BrowserRouter>
