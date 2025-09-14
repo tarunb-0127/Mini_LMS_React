@@ -4,23 +4,19 @@ import axios from "axios";
 import {jwtDecode} from "jwt-decode";
 import Navbar from "../Components/Navbar";
 import LogoutButton from "../Components/LogoutButton";
-import { BookOpen, Bell, Calendar, List, Quote, Search } from "lucide-react";
+import { BookOpen, Bell, Calendar, Quote, Search } from "lucide-react";
 
 export default function LearnerHome() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
   const [learner, setLearner] = useState({ username: "", email: "", id: null });
-  const [stats, setStats] = useState({
-    enrolledCourses: 0,
-    notifications: 0,
-    upcomingSessions: 0,
-  });
+  const [stats, setStats] = useState({ enrolledCourses: 0, notifications: 0, upcomingSessions: 0 });
   const [loading, setLoading] = useState(true);
-
   const [search, setSearch] = useState("");
   const [recentCourses, setRecentCourses] = useState([]);
   const [browseCourses, setBrowseCourses] = useState([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
 
   useEffect(() => {
     const fetchLearnerData = async () => {
@@ -30,34 +26,37 @@ export default function LearnerHome() {
       }
 
       try {
-        // Decode token to get learner info
         const decoded = jwtDecode(token);
+        const learnerId = decoded.userId || decoded.sub;
+
         setLearner({
           username: decoded.username || "",
           email: decoded.email || "",
-          id: decoded.userId || decoded.sub,
+          id: learnerId,
         });
 
         // Fetch all courses
         const coursesRes = await axios.get("http://localhost:5254/api/course/all", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        // Filter courses enrolled by learner
-        const enrolled = coursesRes.data.filter(
-          (c) =>
-            c.enrolledLearners?.includes(decoded.userId) || c.Visibility === "Public"
-        );
-        setStats((prev) => ({ ...prev, enrolledCourses: enrolled.length }));
-
-        // Recent courses: last 3 enrolled
-        const recent = enrolled.slice(0, 3);
-        setRecentCourses(recent);
-
-        // Browse courses: all available for browsing
         setBrowseCourses(coursesRes.data);
 
-        // Notifications (example)
+        // Fetch enrolled courses
+        const enrollRes = await axios.get(
+          "http://localhost:5254/api/Enrollment/my-courses",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const enrolledCourses = enrollRes.data || [];
+        const enrolledIds = enrolledCourses.map((c) => c.id);
+        setEnrolledCourseIds(enrolledIds);
+
+        // Update stats
+        setStats((prev) => ({ ...prev, enrolledCourses: enrolledCourses.length }));
+
+        // Recent courses (last 3 enrolled)
+        setRecentCourses(enrolledCourses.slice(-3).reverse());
+
+        // Notifications
         const notifRes = await axios.get("http://localhost:5254/api/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -92,6 +91,7 @@ export default function LearnerHome() {
       <Navbar />
 
       <div className="container mt-5 mb-5">
+        {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
           <div>
             <h3>
@@ -106,6 +106,7 @@ export default function LearnerHome() {
           <LogoutButton />
         </div>
 
+        {/* Quote */}
         <div className="alert alert-secondary d-flex align-items-center mb-4">
           <Quote className="me-2" />
           <span>“Learning is a treasure that will follow its owner everywhere.”</span>
@@ -177,21 +178,28 @@ export default function LearnerHome() {
           <h5 className="mb-3">Browse Courses</h5>
           <div className="row g-3">
             {filteredCourses.length ? (
-              filteredCourses.map((c) => (
-                <div key={c.id} className="col-md-3">
-                  <div className="card shadow-sm p-3 h-100">
-                    <h6>{c.name}</h6>
-                    <p className="mb-0">Trainer: {c.trainer?.username}</p>
-                    <p className="mb-0">Duration: {c.duration} hrs</p>
-                    <Link
-                      to={`/learner/course/${c.id}`}
-                      className="btn btn-sm btn-outline-primary mt-2"
-                    >
-                      View
-                    </Link>
+              filteredCourses.map((c) => {
+                const enrolled = enrolledCourseIds.includes(c.id);
+                return (
+                  <div key={c.id} className="col-md-3">
+                    <div className="card shadow-sm p-3 h-100">
+                      <h6>{c.name}</h6>
+                      <p className="mb-0">Trainer: {c.trainer?.username}</p>
+                      <p className="mb-0">Duration: {c.duration} hrs</p>
+                      {enrolled ? (
+                        <span className="badge bg-success mt-2">Enrolled</span>
+                      ) : (
+                        <Link
+                          to={`/learner/course/${c.id}`}
+                          className="btn btn-sm btn-outline-primary mt-2"
+                        >
+                          View
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p>No courses found.</p>
             )}
@@ -202,6 +210,7 @@ export default function LearnerHome() {
   );
 }
 
+// Dashboard Card Component
 function DashboardCard({ icon, label, value }) {
   return (
     <div className="col-sm-6 col-lg-3">
