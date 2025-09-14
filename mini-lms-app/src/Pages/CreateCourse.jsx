@@ -1,115 +1,145 @@
-// src/Pages/CreateCourse.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import { BookOpen, Save } from "lucide-react";
+import {jwtDecode} from "jwt-decode";
+import axios from "axios";
+import { BookOpen, Tag, Clock, Eye, PlusCircle } from "lucide-react";
 
-function CreateCourse() {
-  const [formData, setFormData] = useState({
+export default function CreateCourse() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token")?.trim();
+
+  const [course, setCourse] = useState({
     name: "",
     type: "",
     duration: "",
     visibility: "Public",
   });
-  const [message, setMessage] = useState("");
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Check token on mount
+  useEffect(() => {
+    if (!token) {
+      navigate("/trainer-login", { state: { alert: "Please login first." } });
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(token);
+      if (!decoded.email || decoded.role !== "Trainer") {
+        throw new Error("Unauthorized");
+      }
+    } catch (err) {
+      console.error("Invalid token:", err);
+      localStorage.clear();
+      navigate("/trainer-login", { state: { alert: "Session invalid. Please login again." } });
+    }
+  }, [token, navigate]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setCourse({ ...course, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const decoded = jwtDecode(token);
-    const trainerId = decoded.UserId || decoded.userId || decoded.sub;
-
-    const payload = new FormData();
-    payload.append("name", formData.name);
-    payload.append("type", formData.type);
-    payload.append("duration", formData.duration);
-    payload.append("visibility", formData.visibility);
-    payload.append("trainerId", trainerId);
+    setLoading(true);
+    setError("");
 
     try {
-      const res = await fetch("http://localhost:5254/api/Course/create", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: payload,
-      });
+      const res = await axios.post(
+        "http://localhost:5254/api/Course/create",
+        course,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessage("✅ Course created successfully.");
-        navigate(`/trainer/course/${data.id}`);
-      } else {
-        setMessage(data.message || "Course creation failed.");
-      }
-    } catch {
-      setMessage("Network error. Try again.");
+      alert(`Course "${res.data.name}" created successfully!`);
+      navigate("/trainer/my-courses");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to create course. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="container mt-5">
-      <h2>
-        <BookOpen className="me-2" />
-        Create Course
-      </h2>
+      <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: "600px" }}>
+        <h3 className="mb-4 text-center text-primary d-flex align-items-center justify-content-center">
+          <BookOpen size={28} className="me-2" /> Create New Course
+        </h3>
 
-      {message && <div className="alert alert-info mt-3">{message}</div>}
+        {error && <div className="alert alert-danger">{error}</div>}
 
-      <form onSubmit={handleSubmit} className="card p-4 shadow-sm mt-4">
-        <div className="mb-3">
-          <label>Course Name</label>
-          <input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="form-control"
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label>Course Type</label>
-          <input
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="form-control"
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label>Duration (hrs)</label>
-          <input
-            name="duration"
-            value={formData.duration}
-            onChange={handleChange}
-            className="form-control"
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label>Visibility</label>
-          <select
-            name="visibility"
-            value={formData.visibility}
-            onChange={handleChange}
-            className="form-select"
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3 input-group">
+            <span className="input-group-text bg-white"><BookOpen size={20} /></span>
+            <input
+              type="text"
+              name="name"
+              value={course.name}
+              onChange={handleChange}
+              className="form-control form-control-lg"
+              placeholder="Course Name"
+              required
+            />
+          </div>
+
+          <div className="mb-3 input-group">
+            <span className="input-group-text bg-white"><Tag size={20} /></span>
+            <input
+              type="text"
+              name="type"
+              value={course.type}
+              onChange={handleChange}
+              className="form-control form-control-lg"
+              placeholder="Course Type"
+            />
+          </div>
+
+          <div className="row">
+            <div className="col-md-6 mb-3 input-group">
+              <span className="input-group-text bg-white"><Clock size={20} /></span>
+              <input
+                type="number"
+                name="duration"
+                value={course.duration}
+                onChange={handleChange}
+                className="form-control form-control-lg"
+                placeholder="Duration (hrs)"
+                required
+              />
+            </div>
+
+            <div className="col-md-6 mb-3 input-group">
+              <span className="input-group-text bg-white"><Eye size={20} /></span>
+              <select
+                name="visibility"
+                value={course.visibility}
+                onChange={handleChange}
+                className="form-select form-select-lg"
+              >
+                <option value="Public">Public</option>
+                <option value="Hidden">Hidden</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary w-100 py-2 mt-3 d-flex justify-content-center align-items-center"
+            disabled={loading}
           >
-            <option value="Public">Public</option>
-            <option value="Private">Private</option>
-          </select>
-        </div>
-
-        <button type="submit" className="btn btn-success w-100">
-          <Save className="me-2" />
-          Create Course
-        </button>
-      </form>
+            <PlusCircle size={20} className="me-2" />
+            {loading ? "Creating..." : "Create Course"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
-
-export default CreateCourse;
